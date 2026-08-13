@@ -1,0 +1,29 @@
+# Terraform
+# NOTE: .terraform.lock.hcl is intentionally NOT ignored - commit it for reproducible provider versions.
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+*.tfplan
+tfplan
+plan.txt
+
+# Real variable values (commit only the .example files)
+**/terraform.tfvars
+**/terraform.tfvars.json
+!**/terraform.tfvars.example
+
+# Local backend config with real (non-secret but environment-specific) values
+# Keep the checked-in backend.hcl as a template with placeholders only.
+
+.terraformrc
+terraform.rc
+
+# OS / editor
+.DS_Store
+*.swp

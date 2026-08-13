@@ -1,0 +1,13 @@
+# Copy to terraform.tfvars and fill in real values. Do NOT commit terraform.tfvars
+# if you consider these values sensitive in your organization (none are secrets by
+# themselves, but subscription/tenant IDs are still worth keeping out of git history).
+
+subscription_id             = "00000000-0000-0000-0000-000000000000"
+tenant_id                   = "00000000-0000-0000-0000-000000000000"
+location                    = "centralindia"
+state_resource_group_name   = "rg-pip-demo-tfstate"
+state_storage_account_name  = "stpipdemotfstateXXXX" # must be globally unique
+state_container_name        = "tfstate"
+github_org                  = "your-github-org-or-user"
+github_repo                 = "your-repo-name"
+github_environment          = "production"
