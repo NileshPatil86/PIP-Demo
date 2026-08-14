@@ -22,8 +22,6 @@ env:
   ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
   TF_VAR_subscription_id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
   TF_VAR_tenant_id: ${{ vars.AZURE_TENANT_ID }}
-  TF_VAR_aad_admin_group_object_ids: ${{ vars.AKS_AAD_ADMIN_GROUP_OBJECT_IDS }}
-  TF_VAR_api_server_authorized_ip_ranges: ${{ vars.AKS_API_SERVER_AUTHORIZED_IP_RANGES }}
   WORKING_DIR: environments/prod
 
 jobs:
@@ -40,6 +38,14 @@ jobs:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # The azurerm backend (unlike the azurerm provider) doesn't auto-detect
+      # GitHub Actions OIDC, so it needs the runner's ID token request
+      # token/URL explicitly, aliased to the ARM_OIDC_* names it looks for.
+      - name: Export OIDC token vars for Terraform backend
+        run: |
+          echo "ARM_OIDC_REQUEST_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN" >> "$GITHUB_ENV"
+          echo "ARM_OIDC_REQUEST_URL=$ACTIONS_ID_TOKEN_REQUEST_URL" >> "$GITHUB_ENV"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3

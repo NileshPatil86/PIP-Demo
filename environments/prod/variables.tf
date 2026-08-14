@@ -51,11 +51,13 @@ variable "aks_subnet_address_prefixes" {
 variable "aad_admin_group_object_ids" {
   description = "Azure AD group object IDs granted cluster-admin via Azure RBAC for Kubernetes Authorization."
   type        = list(string)
+  default     = []
 }
 
 variable "api_server_authorized_ip_ranges" {
-  description = "Public CIDR ranges allowed to reach the AKS API server (office egress, VPN, self-hosted runner, etc.). Must include the IP(s) your GitHub Actions runner egresses from if you plan to run kubectl from CI."
+  description = "Public CIDR ranges allowed to reach the AKS API server (office egress, VPN, self-hosted runner, etc.). Empty list = no IP restriction (API server open to the internet, relying on Azure AD RBAC only). POC-only default; set real ranges before treating this as production."
   type        = list(string)
+  default     = []
 }
 
 variable "kubernetes_version" {
