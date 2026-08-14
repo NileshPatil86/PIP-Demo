@@ -85,9 +85,16 @@ jobs:
           # other tenant's account - which fails with exactly
           # "Issuer validation failed. Issuer did not match."
           echo "== Does ${SA} exist in this subscription? =="
-          if ! az storage account show --name "$SA" --resource-group "$RG" --query id -o tsv; then
-            echo "::error::Storage account '$SA' not found in resource group '$RG' of the current subscription."
-            echo "::error::Because storage account names are globally unique, requests are reaching an account owned by a DIFFERENT tenant. Apply the bootstrap/ stack to create the real account, or fix TFSTATE_STORAGE_ACCOUNT_NAME / TFSTATE_RESOURCE_GROUP_NAME."
+          if sa_id=$(az storage account show --name "$SA" --resource-group "$RG" \
+                       --query id -o tsv 2>/tmp/sa_err.txt); then
+            echo "Found: $sa_id"
+          else
+            cat /tmp/sa_err.txt
+            if grep -q "AuthorizationFailed" /tmp/sa_err.txt; then
+              echo "::error::The GitHub Actions identity cannot even read '$RG' in this subscription, so its role assignments are missing. Apply the bootstrap/ stack as a subscription Owner - it creates the state storage account plus the Contributor and Storage Blob Data Contributor assignments."
+            else
+              echo "::error::Storage account '$SA' does not exist in resource group '$RG'. Storage account names are globally unique, so requests are currently reaching an account in a DIFFERENT tenant. Apply the bootstrap/ stack and set TFSTATE_* from its outputs."
+            fi
             exit 1
           fi
 
@@ -188,9 +195,16 @@ jobs:
           # other tenant's account - which fails with exactly
           # "Issuer validation failed. Issuer did not match."
           echo "== Does ${SA} exist in this subscription? =="
-          if ! az storage account show --name "$SA" --resource-group "$RG" --query id -o tsv; then
-            echo "::error::Storage account '$SA' not found in resource group '$RG' of the current subscription."
-            echo "::error::Because storage account names are globally unique, requests are reaching an account owned by a DIFFERENT tenant. Apply the bootstrap/ stack to create the real account, or fix TFSTATE_STORAGE_ACCOUNT_NAME / TFSTATE_RESOURCE_GROUP_NAME."
+          if sa_id=$(az storage account show --name "$SA" --resource-group "$RG" \
+                       --query id -o tsv 2>/tmp/sa_err.txt); then
+            echo "Found: $sa_id"
+          else
+            cat /tmp/sa_err.txt
+            if grep -q "AuthorizationFailed" /tmp/sa_err.txt; then
+              echo "::error::The GitHub Actions identity cannot even read '$RG' in this subscription, so its role assignments are missing. Apply the bootstrap/ stack as a subscription Owner - it creates the state storage account plus the Contributor and Storage Blob Data Contributor assignments."
+            else
+              echo "::error::Storage account '$SA' does not exist in resource group '$RG'. Storage account names are globally unique, so requests are currently reaching an account in a DIFFERENT tenant. Apply the bootstrap/ stack and set TFSTATE_* from its outputs."
+            fi
             exit 1
           fi
 
