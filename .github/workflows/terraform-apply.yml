@@ -17,6 +17,11 @@ env:
   TF_IN_AUTOMATION: "true"
   TF_INPUT: "false"
   ARM_USE_OIDC: "true"
+  # Force the backend onto Azure AD (data-plane OAuth) rather than shared keys.
+  # backend.hcl already sets use_azuread_auth, but the state storage account has
+  # shared_access_key_enabled = false, so a silent fallback to key-based auth
+  # fails with a 403 AuthenticationFailed that is hard to read.
+  ARM_USE_AZUREAD: "true"
   ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
   ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
   ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
@@ -46,6 +51,36 @@ jobs:
         run: |
           echo "ARM_OIDC_REQUEST_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN" >> "$GITHUB_ENV"
           echo "ARM_OIDC_REQUEST_URL=$ACTIONS_ID_TOKEN_REQUEST_URL" >> "$GITHUB_ENV"
+
+      # Reproduces the exact call `terraform init` makes against the state
+      # container, but via the CLI, which reports the real Azure error code
+      # instead of the backend's opaque "AuthenticationFailed" wrapper.
+      - name: Preflight - verify backend variables and state container access
+        env:
+          SA: ${{ vars.TFSTATE_STORAGE_ACCOUNT_NAME }}
+          RG: ${{ vars.TFSTATE_RESOURCE_GROUP_NAME }}
+          CONTAINER: ${{ vars.TFSTATE_CONTAINER_NAME }}
+        run: |
+          missing=0
+          for v in SA RG CONTAINER; do
+            if [ -z "${!v}" ]; then
+              echo "::error::Repository variable behind $v is empty. Define TFSTATE_STORAGE_ACCOUNT_NAME, TFSTATE_RESOURCE_GROUP_NAME and TFSTATE_CONTAINER_NAME under Settings > Secrets and variables > Actions > *Variables* (not Secrets)."
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || exit 1
+
+          echo "Authenticated as:"
+          az ad signed-in-user show --query id -o tsv 2>/dev/null \
+            || az account show --query "user.name" -o tsv
+
+          echo "Listing blobs in ${SA}/${CONTAINER} using Azure AD auth:"
+          az storage blob list \
+            --auth-mode login \
+            --account-name "$SA" \
+            --container-name "$CONTAINER" \
+            --num-results 1 \
+            -o table
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -102,6 +137,36 @@ jobs:
         run: |
           echo "ARM_OIDC_REQUEST_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN" >> "$GITHUB_ENV"
           echo "ARM_OIDC_REQUEST_URL=$ACTIONS_ID_TOKEN_REQUEST_URL" >> "$GITHUB_ENV"
+
+      # Reproduces the exact call `terraform init` makes against the state
+      # container, but via the CLI, which reports the real Azure error code
+      # instead of the backend's opaque "AuthenticationFailed" wrapper.
+      - name: Preflight - verify backend variables and state container access
+        env:
+          SA: ${{ vars.TFSTATE_STORAGE_ACCOUNT_NAME }}
+          RG: ${{ vars.TFSTATE_RESOURCE_GROUP_NAME }}
+          CONTAINER: ${{ vars.TFSTATE_CONTAINER_NAME }}
+        run: |
+          missing=0
+          for v in SA RG CONTAINER; do
+            if [ -z "${!v}" ]; then
+              echo "::error::Repository variable behind $v is empty. Define TFSTATE_STORAGE_ACCOUNT_NAME, TFSTATE_RESOURCE_GROUP_NAME and TFSTATE_CONTAINER_NAME under Settings > Secrets and variables > Actions > *Variables* (not Secrets)."
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || exit 1
+
+          echo "Authenticated as:"
+          az ad signed-in-user show --query id -o tsv 2>/dev/null \
+            || az account show --query "user.name" -o tsv
+
+          echo "Listing blobs in ${SA}/${CONTAINER} using Azure AD auth:"
+          az storage blob list \
+            --auth-mode login \
+            --account-name "$SA" \
+            --container-name "$CONTAINER" \
+            --num-results 1 \
+            -o table
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3

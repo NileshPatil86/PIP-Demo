@@ -8,6 +8,6 @@
 
 resource_group_name  = "rg-pip-demo-tfstate"
 storage_account_name = "REPLACE_WITH_BOOTSTRAP_OUTPUT"
-container_name        = "tfstate"
-key                   = "prod/aks.terraform.tfstate"
-use_azuread_auth      = true
+container_name       = "tfstate"
+key                  = "prod/aks.terraform.tfstate"
+use_azuread_auth     = true
